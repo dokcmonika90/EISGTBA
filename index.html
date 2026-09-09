@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alter Tracker - Complete</title>
+    <title>Alter Tracker - Ultimate</title>
     <meta name="theme-color" content="#7c3aed">
     
     <style>
@@ -48,16 +48,69 @@
         .mood-btn { flex: 1; min-width: 50px; padding: 10px; background: #e0e0e0; border: none; border-radius: 6px; cursor: pointer; font-size: 20px; }
         .mood-btn.selected { background: #7c3aed; }
         .chart-bar { background: #7c3aed; margin: 2px 0; border-radius: 3px; height: 20px; }
-        .timeline-segment { height: 30px; display: inline-block; cursor: pointer; }
         .avatar-img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin: 5px auto; display: block; }
         .banner-img { width: 100%; height: 100px; object-fit: cover; border-radius: 8px; margin: 5px 0; }
         .import-section { background: #f0f0f0; padding: 15px; border-radius: 8px; margin: 10px 0; }
         body.dark .import-section { background: #1a1a1a; }
+        
+        /* Calendar Styles */
+        .calendar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin: 10px 0; }
+        .calendar-day { background: #f9f9f9; padding: 10px; border-radius: 5px; text-align: center; cursor: pointer; min-height: 40px; }
+        body.dark .calendar-day { background: #1a1a1a; }
+        .calendar-day.has-switch { background: #7c3aed; color: white; }
+        .calendar-day.today { border: 2px solid #7c3aed; }
+        .calendar-header { text-align: center; margin: 10px 0; }
+        
+        /* Gallery Styles */
+        .gallery-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin: 10px 0; }
+        .gallery-img { width: 100%; height: 100px; object-fit: cover; border-radius: 5px; cursor: pointer; }
+        
+        /* PIN Lock Styles */
+        .pin-screen { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #7c3aed; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .pin-dots { display: flex; gap: 15px; margin: 20px 0; }
+        .pin-dot { width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.3); }
+        .pin-dot.filled { background: white; }
+        .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 300px; width: 100%; }
+        .pin-btn { padding: 20px; font-size: 24px; background: rgba(255,255,255,0.2); border: none; color: white; border-radius: 10px; cursor: pointer; }
+        
+        /* Theme Colors */
+        .theme-purple { --primary: #7c3aed; }
+        .theme-blue { --primary: #3b82f6; }
+        .theme-green { --primary: #10b981; }
+        .theme-pink { --primary: #ec4899; }
+        .theme-orange { --primary: #f97316; }
     </style>
 </head>
 <body>
+    <!-- PIN Lock Screen -->
+    <div class="pin-screen" id="pinScreen" style="display:none;">
+        <h2 style="color:white;">Enter PIN</h2>
+        <div class="pin-dots">
+            <div class="pin-dot" id="pinDot1"></div>
+            <div class="pin-dot" id="pinDot2"></div>
+            <div class="pin-dot" id="pinDot3"></div>
+            <div class="pin-dot" id="pinDot4"></div>
+        </div>
+        <div class="pin-pad">
+            <button class="pin-btn" onclick="enterPin('1')">1</button>
+            <button class="pin-btn" onclick="enterPin('2')">2</button>
+            <button class="pin-btn" onclick="enterPin('3')">3</button>
+            <button class="pin-btn" onclick="enterPin('4')">4</button>
+            <button class="pin-btn" onclick="enterPin('5')">5</button>
+            <button class="pin-btn" onclick="enterPin('6')">6</button>
+            <button class="pin-btn" onclick="enterPin('7')">7</button>
+            <button class="pin-btn" onclick="enterPin('8')">8</button>
+            <button class="pin-btn" onclick="enterPin('9')">9</button>
+            <button class="pin-btn" onclick="clearPin()">C</button>
+            <button class="pin-btn" onclick="enterPin('0')">0</button>
+            <button class="pin-btn" onclick="deletePin()">⌫</button>
+        </div>
+    </div>
+    
     <div class="header">
         <button onclick="toggleDark()" id="darkBtn">🌙</button>
+        <button onclick="changeTheme()" style="right:60px;">🎨</button>
+        <button onclick="lockApp()" style="right:110px;">🔒</button>
         <h1>🌟 Alter Tracker</h1>
         <p>Complete System Management</p>
     </div>
@@ -79,6 +132,8 @@
         <button class="nav-btn" onclick="showPage('import')">📥 Import</button>
         <button class="nav-btn" onclick="showPage('switch')">🔄 Switch</button>
         <button class="nav-btn" onclick="showPage('history')">📜 History</button>
+        <button class="nav-btn" onclick="showPage('calendar')">📅 Calendar</button>
+        <button class="nav-btn" onclick="showPage('gallery')">🖼️ Gallery</button>
         <button class="nav-btn" onclick="showPage('messages')">💬 Notes</button>
         <button class="nav-btn" onclick="showPage('tasks')">📋 Tasks</button>
         <button class="nav-btn" onclick="showPage('triggers')">⚠️ Triggers</button>
@@ -91,9 +146,10 @@
     </div>
     
     <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(this.files[0])">
+    <input type="file" id="galleryFile" accept="image/*" style="display:none" onchange="addGalleryImage(this.files[0])">
 
     <script>
-var alters = [];
+        var alters = [];
 var switches = [];
 var messages = [];
 var tasks = [];
@@ -104,6 +160,11 @@ var relationships = [];
 var coConsciousness = [];
 var activeAlterId = null;
 var selectedMood = '';
+var currentTheme = 0;
+var pinCode = localStorage.getItem('pinCode') || '';
+var pinEntry = '';
+
+var themes = ['theme-purple', 'theme-blue', 'theme-green', 'theme-pink', 'theme-orange'];
 
 function loadData() {
     try {
@@ -177,8 +238,8 @@ function quickSwitch(id) {
 function showPage(page) {
     var buttons = document.querySelectorAll('.nav-btn');
     for (var i = 0; i < buttons.length; i++) buttons[i].classList.remove('active');
-    var pages = ['alters', 'add', 'import', 'switch', 'history', 'messages', 'tasks', 'triggers', 'checkin', 'journal', 'relationships', 'coconscious', 'analytics', 'settings'];
-    var labels = ['Alters', 'Add', 'Import', 'Switch', 'History', 'Notes', 'Tasks', 'Triggers', 'CheckIn', 'Journal', 'Relations', 'Co-Con', 'Stats', 'More'];
+    var pages = ['alters', 'add', 'import', 'switch', 'history', 'calendar', 'gallery', 'messages', 'tasks', 'triggers', 'checkin', 'journal', 'relationships', 'coconscious', 'analytics', 'settings'];
+    var labels = ['Alters', 'Add', 'Import', 'Switch', 'History', 'Calendar', 'Gallery', 'Notes', 'Tasks', 'Triggers', 'CheckIn', 'Journal', 'Relations', 'Co-Con', 'Stats', 'More'];
     for (var j = 0; j < pages.length; j++) {
         if (page === pages[j]) {
             for (var k = 0; k < buttons.length; k++) {
@@ -191,6 +252,8 @@ function showPage(page) {
     else if (page === 'import') showImportPage();
     else if (page === 'switch') showSwitchForm();
     else if (page === 'history') showHistory();
+    else if (page === 'calendar') showCalendar();
+    else if (page === 'gallery') showGallery();
     else if (page === 'messages') showMessages();
     else if (page === 'tasks') showTasks();
     else if (page === 'triggers') showTriggers();
@@ -201,7 +264,73 @@ function showPage(page) {
     else if (page === 'analytics') showAnalytics();
     else if (page === 'settings') showSettings();
 }
-function showAlters() {
+
+function changeTheme() {
+    currentTheme = (currentTheme + 1) % themes.length;
+    document.body.className = themes[currentTheme];
+    if (document.body.classList.contains('dark')) document.body.classList.add('dark');
+    localStorage.setItem('theme', currentTheme);
+}
+
+function toggleDark() {
+    document.body.classList.toggle('dark');
+    var isDark = document.body.classList.contains('dark');
+    localStorage.setItem('darkMode', isDark);
+    document.getElementById('darkBtn').textContent = isDark ? '☀️' : '🌙';
+}
+
+function lockApp() {
+    if (!pinCode) {
+        var newPin = prompt('Set a 4-digit PIN:');
+        if (newPin && newPin.length === 4) {
+            pinCode = newPin;
+            localStorage.setItem('pinCode', pinCode);
+            alert('PIN set!');
+        }
+        return;
+    }
+    document.getElementById('pinScreen').style.display = 'flex';
+    pinEntry = '';
+    updatePinDots();
+}
+
+function enterPin(digit) {
+    if (pinEntry.length < 4) {
+        pinEntry += digit;
+        updatePinDots();
+        if (pinEntry.length === 4) {
+            if (pinEntry === pinCode) {
+                document.getElementById('pinScreen').style.display = 'none';
+                pinEntry = '';
+                updatePinDots();
+            } else {
+                alert('Wrong PIN');
+                pinEntry = '';
+                updatePinDots();
+            }
+        }
+    }
+}
+
+function clearPin() {
+    pinEntry = '';
+    updatePinDots();
+}
+
+function deletePin() {
+    pinEntry = pinEntry.slice(0, -1);
+    updatePinDots();
+}
+
+function updatePinDots() {
+    for (var i = 1; i <= 4; i++) {
+        var dot = document.getElementById('pinDot' + i);
+        if (dot) {
+            dot.classList.toggle('filled', i <= pinEntry.length);
+        }
+    }
+    }
+        function showAlters() {
     var html = '<h2>System Members</h2><input type="text" id="searchInput" placeholder="Search..." oninput="filterAlters()">';
     if (alters.length === 0) {
         html += '<p>No alters yet. Tap Add to create one.</p>';
@@ -227,6 +356,13 @@ function showAlters() {
                 html += '</p>';
             }
             if (a.songUrl) html += '<audio controls style="width:100%;" src="' + a.songUrl + '"></audio>';
+            if (a.gallery && a.gallery.length > 0) {
+                html += '<div class="gallery-grid">';
+                for (var g = 0; g < a.gallery.length; g++) {
+                    html += '<img src="' + a.gallery[g] + '" class="gallery-img" onclick="viewImage(\'' + a.gallery[g] + '\')">';
+                }
+                html += '</div>';
+            }
             if (a.notes) html += '<p>Notes: ' + a.notes + '</p>';
             html += '<button class="success" onclick="setActive(\'' + a.id + '\')">Set Active</button>';
             html += '<button class="delete" onclick="deleteAlter(\'' + a.id + '\')">Delete</button>';
@@ -236,18 +372,126 @@ function showAlters() {
     document.getElementById('contentArea').innerHTML = html;
 }
 
-function filterAlters() {
-    var search = document.getElementById('searchInput').value.toLowerCase();
-    var html = '<h2>System Members</h2><input type="text" id="searchInput" placeholder="Search..." value="' + search + '" oninput="filterAlters()">';
-    for (var i = 0; i < alters.length; i++) {
-        var a = alters[i];
-        if (a.name.toLowerCase().indexOf(search) !== -1) {
-            html += '<div class="card"><h3>' + a.name + '</h3>';
-            if (a.role) html += '<p>Role: ' + a.role + '</p>';
-            html += '<button class="success" onclick="setActive(\'' + a.id + '\')">Set Active</button>';
-            html += '<button class="delete" onclick="deleteAlter(\'' + a.id + '\')">Delete</button></div>';
+function showCalendar() {
+    var html = '<h2>Calendar View</h2>';
+    html += '<div class="calendar-header">';
+    var now = new Date();
+    var month = now.getMonth();
+    var year = now.getFullYear();
+    var monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    html += '<h3>' + monthNames[month] + ' ' + year + '</h3>';
+    html += '</div>';
+    
+    var firstDay = new Date(year, month, 1).getDay();
+    var daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    html += '<div class="calendar">';
+    var days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    for (var d = 0; d < 7; d++) {
+        html += '<div style="text-align:center;font-weight:bold;">' + days[d] + '</div>';
+    }
+    
+    for (var i = 0; i < firstDay; i++) {
+        html += '<div></div>';
+    }
+    
+    for (var day = 1; day <= daysInMonth; day++) {
+        var dateStr = year + '-' + (month + 1) + '-' + day;
+        var hasSwitch = false;
+        for (var s = 0; s < switches.length; s++) {
+            var swDate = new Date(switches[s].timestamp);
+            if (swDate.getDate() === day && swDate.getMonth() === month && swDate.getFullYear() === year) {
+                hasSwitch = true;
+                break;
+            }
+        }
+        var isToday = (day === now.getDate() && month === now.getMonth() && year === now.getFullYear());
+        html += '<div class="calendar-day ' + (hasSwitch ? 'has-switch' : '') + ' ' + (isToday ? 'today' : '') + '" onclick="showDaySwitches(' + day + ')">' + day + '</div>';
+    }
+    html += '</div>';
+    
+    document.getElementById('contentArea').innerHTML = html;
+}
+
+function showDaySwitches(day) {
+    var now = new Date();
+    var month = now.getMonth();
+    var year = now.getFullYear();
+    var html = '<h2>Switches on ' + (month + 1) + '/' + day + '/' + year + '</h2>';
+    html += '<button onclick="showCalendar()">Back to Calendar</button>';
+    
+    var found = false;
+    for (var i = 0; i < switches.length; i++) {
+        var swDate = new Date(switches[i].timestamp);
+        if (swDate.getDate() === day && swDate.getMonth() === month && swDate.getFullYear() === year) {
+            found = true;
+            var alter = null;
+            for (var j = 0; j < alters.length; j++) {
+                if (alters[j].id === switches[i].alterId) { alter = alters[j]; break; }
+            }
+            html += '<div class="switch-card card">';
+            html += '<strong>' + (alter ? alter.name : 'Unknown') + '</strong>';
+            html += '<br><small>' + new Date(switches[i].timestamp).toLocaleTimeString() + '</small>';
+            if (switches[i].mood) html += ' (' + switches[i].mood + ')';
+            html += '</div>';
         }
     }
+    
+    if (!found) html += '<p>No switches on this day.</p>';
+    document.getElementById('contentArea').innerHTML = html;
+}
+
+function showGallery() {
+    var html = '<h2>Gallery</h2>';
+    
+    if (alters.length === 0) {
+        html += '<p>Add alters first.</p>';
+    } else {
+        html += '<select id="galleryAlter">';
+        for (var i = 0; i < alters.length; i++) {
+            html += '<option value="' + alters[i].id + '">' + alters[i].name + '</option>';
+        }
+        html += '</select>';
+        html += '<button onclick="document.getElementById(\'galleryFile\').click()">Add Image</button>';
+        html += '<hr>';
+        
+        for (var j = 0; j < alters.length; j++) {
+            if (alters[j].gallery && alters[j].gallery.length > 0) {
+                html += '<h3>' + alters[j].name + '</h3>';
+                html += '<div class="gallery-grid">';
+                for (var g = 0; g < alters[j].gallery.length; g++) {
+                    html += '<img src="' + alters[j].gallery[g] + '" class="gallery-img" onclick="viewImage(\'' + alters[j].gallery[g] + '\')">';
+                }
+                html += '</div>';
+            }
+        }
+    }
+    
+    document.getElementById('contentArea').innerHTML = html;
+}
+
+function addGalleryImage(file) {
+    if (!file) return;
+    var alterId = document.getElementById('galleryAlter').value;
+    var reader = new FileReader();
+    reader.onload = function(e) {
+        for (var i = 0; i < alters.length; i++) {
+            if (alters[i].id === alterId) {
+                if (!alters[i].gallery) alters[i].gallery = [];
+                alters[i].gallery.push(e.target.result);
+                break;
+            }
+        }
+        saveData();
+        showGallery();
+    };
+    reader.readAsDataURL(file);
+}
+
+function viewImage(src) {
+    var html = '<h2>Image</h2>';
+    html += '<img src="' + src + '" style="width:100%;border-radius:10px;">';
+    html += '<button onclick="showGallery()">Back</button>';
     document.getElementById('contentArea').innerHTML = html;
 }
 
@@ -262,8 +506,6 @@ function showAddForm() {
     html += '<input type="text" id="alterBanner" placeholder="Banner URL (https://...)">';
     html += '<input type="text" id="alterSong" placeholder="Song URL (https://...)">';
     html += '<input type="text" id="alterTraits" placeholder="Traits (comma-separated)">';
-    html += '<input type="text" id="alterLikes" placeholder="Likes">';
-    html += '<input type="text" id="alterDislikes" placeholder="Dislikes">';
     html += '<textarea id="alterNotes" placeholder="Notes"></textarea>';
     html += '<button onclick="addAlter()">Add Alter</button>';
     document.getElementById('contentArea').innerHTML = html;
@@ -283,9 +525,8 @@ function addAlter() {
         bannerUrl: document.getElementById('alterBanner').value,
         songUrl: document.getElementById('alterSong').value,
         traits: document.getElementById('alterTraits').value,
-        likes: document.getElementById('alterLikes').value,
-        dislikes: document.getElementById('alterDislikes').value,
-        notes: document.getElementById('alterNotes').value
+        notes: document.getElementById('alterNotes').value,
+        gallery: []
     });
     saveData();
     updateStats();
@@ -296,29 +537,13 @@ function addAlter() {
 
 function showImportPage() {
     var html = '<h2>Import Alters</h2>';
-    
-    // File upload
-    html += '<div class="import-section">';
-    html += '<h3>📁 Upload File</h3>';
-    html += '<p>Upload your PluralKit/Simply Plural/Tupperbox export file:</p>';
+    html += '<div class="import-section"><h3>📁 Upload File</h3>';
     html += '<input type="file" id="importFileUpload" accept=".json,.txt" onchange="handleFileUpload(this.files[0])">';
-    html += '<p style="margin-top:10px;"><small>Accepts .json or .txt files</small></p>';
     html += '</div>';
-    
-    // Paste JSON
-    html += '<div class="import-section">';
-    html += '<h3>📋 Paste JSON</h3>';
+    html += '<div class="import-section"><h3>📋 Paste JSON</h3>';
     html += '<textarea id="jsonPaste" placeholder="Paste your JSON data here..."></textarea>';
     html += '<button onclick="importFromPaste()">Import Pasted JSON</button>';
     html += '</div>';
-    
-    // Manual entry
-    html += '<div class="import-section">';
-    html += '<h3>✏️ Manual JSON</h3>';
-    html += '<textarea id="manualJson" placeholder=\'[{"name":"Alter1","role":"Protector"},{"name":"Alter2","role":"Caretaker"}]\'></textarea>';
-    html += '<button onclick="importFromManual()">Import Manual JSON</button>';
-    html += '</div>';
-    
     document.getElementById('contentArea').innerHTML = html;
 }
 
@@ -328,86 +553,52 @@ function handleFileUpload(file) {
     reader.onload = function(e) {
         try {
             var data = JSON.parse(e.target.result);
-            if (data.members && Array.isArray(data.members)) {
-                importMembers(data.members);
-            } else if (Array.isArray(data)) {
-                importMembers(data);
-            } else if (data.alters && Array.isArray(data.alters)) {
-                importMembers(data.alters);
-            } else {
-                alert('Could not recognize the file format.');
-            }
-        } catch(err) {
-            alert('Error reading file. Make sure it\'s valid JSON.');
-        }
+            if (data.members) importMembers(data.members);
+            else if (Array.isArray(data)) importMembers(data);
+            else if (data.alters) importMembers(data.alters);
+        } catch(err) { alert('Invalid file'); }
     };
     reader.readAsText(file);
 }
 
 function importMembers(members) {
-    var count = 0;
     for (var i = 0; i < members.length; i++) {
         var m = members[i];
         alters.push({
             id: Date.now().toString() + i,
-            name: m.name || m.display_name || 'Unknown',
-            role: m.role || m.display_name || '',
-            age: m.age || '',
-            gender: m.gender || '',
-            pronouns: m.pronouns || m.preferred_pronouns || '',
-            avatarUrl: m.avatar_url || m.avatar || m.avatarUrl || '',
-            bannerUrl: m.banner || m.bannerUrl || '',
-            songUrl: m.song || m.songUrl || '',
-            traits: m.tags ? (Array.isArray(m.tags) ? m.tags.join(',') : m.tags) : '',
-            likes: m.likes || '',
-            dislikes: m.dislikes || '',
-            notes: m.description || m.notes || ''
+            name: m.name || 'Unknown',
+            role: m.role || '',
+            avatarUrl: m.avatar_url || m.avatar || '',
+            bannerUrl: m.banner || '',
+            pronouns: m.pronouns || '',
+            notes: m.description || '',
+            gallery: []
         });
-        count++;
     }
-    saveData();
-    updateStats();
-    updateQuickSwitch();
-    alert('Successfully imported ' + count + ' alters!');
+    saveData(); updateStats(); updateQuickSwitch();
+    alert('Imported ' + members.length + ' alters!');
     showAlters();
 }
 
 function importFromPaste() {
     var data = document.getElementById('jsonPaste').value;
-    if (!data) { alert('Please paste JSON data first'); return; }
+    if (!data) { alert('Paste data first'); return; }
     try {
         var parsed = JSON.parse(data);
-        if (parsed.members && Array.isArray(parsed.members)) importMembers(parsed.members);
+        if (parsed.members) importMembers(parsed.members);
         else if (Array.isArray(parsed)) importMembers(parsed);
-        else if (parsed.alters && Array.isArray(parsed.alters)) importMembers(parsed.alters);
-        else alert('Could not recognize the JSON format.');
-    } catch(e) {
-        alert('Invalid JSON. Please check the format.');
-    }
-}
-
-function importFromManual() {
-    var data = document.getElementById('manualJson').value;
-    if (!data) { alert('Please enter JSON data first'); return; }
-    try {
-        var members = JSON.parse(data);
-        if (Array.isArray(members)) importMembers(members);
-        else alert('Please enter an array of alters.');
-    } catch(e) {
-        alert('Invalid JSON format.');
-    }
+        else if (parsed.alters) importMembers(parsed.alters);
+    } catch(e) { alert('Invalid JSON'); }
 }
 
 function showSwitchForm() {
-    if (alters.length === 0) { document.getElementById('contentArea').innerHTML = '<h2>Log Switch</h2><p>Add an alter first.</p>'; return; }
+    if (alters.length === 0) { document.getElementById('contentArea').innerHTML = '<p>Add an alter first.</p>'; return; }
     var html = '<h2>Log Switch</h2><select id="switchAlter"><option value="">Select alter...</option>';
     for (var i = 0; i < alters.length; i++) html += '<option value="' + alters[i].id + '">' + alters[i].name + '</option>';
     html += '</select><p>Mood:</p><div class="mood-selector">';
     var moods = ['😊', '😔', '😰', '😡', '😴', '😐', '🤔'];
     for (var m = 0; m < moods.length; m++) html += '<button type="button" class="mood-btn" onclick="selectMood(\'' + moods[m] + '\', this)">' + moods[m] + '</button>';
     html += '</div><input type="text" id="switchTrigger" placeholder="Trigger (optional)"><textarea id="switchNotes" placeholder="Notes"></textarea>';
-    html += '<h4>Co-Conscious With:</h4>';
-    for (var c = 0; c < alters.length; c++) html += '<label style="display:flex;align-items:center;gap:10px;"><input type="checkbox" class="coconscious-checkbox" value="' + alters[c].id + '" style="width:auto;">' + alters[c].name + '</label>';
     html += '<button onclick="logSwitch()">Log Switch</button>';
     document.getElementById('contentArea').innerHTML = html;
 }
@@ -421,24 +612,15 @@ function selectMood(mood, btn) {
 
 function logSwitch() {
     var alterId = document.getElementById('switchAlter').value;
-    if (!alterId) { alert('Please select an alter'); return; }
-    var newSwitch = { id: Date.now().toString(), alterId: alterId, timestamp: new Date().toISOString(), trigger: document.getElementById('switchTrigger').value, notes: document.getElementById('switchNotes').value, mood: selectedMood };
-    switches.push(newSwitch);
+    if (!alterId) { alert('Select an alter'); return; }
+    switches.push({ id: Date.now().toString(), alterId: alterId, timestamp: new Date().toISOString(), trigger: document.getElementById('switchTrigger').value, notes: document.getElementById('switchNotes').value, mood: selectedMood });
     activeAlterId = alterId;
-    var coAlters = [];
-    var checkboxes = document.querySelectorAll('.coconscious-checkbox:checked');
-    for (var i = 0; i < checkboxes.length; i++) {
-        if (checkboxes[i].value !== alterId) coAlters.push(checkboxes[i].value);
-    }
-    if (coAlters.length > 0) {
-        coConsciousness.push({ id: Date.now().toString(), switchId: newSwitch.id, alterIds: coAlters, timestamp: new Date().toISOString(), notes: '' });
-    }
     selectedMood = '';
     saveData(); updateStats(); updateQuickSwitch();
     alert('Switch logged!');
     showHistory();
-}
-        function showHistory() {
+        }
+                function showHistory() {
             var html = '<h2>Switch History</h2>';
             if (switches.length === 0) { html += '<p>No switches yet.</p>'; }
             else {
@@ -450,12 +632,11 @@ function logSwitch() {
                         if (alters[j].id === sw.alterId) { alter = alters[j]; break; }
                     }
                     html += '<div class="switch-card card">';
-                    if (alter && alter.avatarUrl) html += '<img src="' + alter.avatarUrl + '" style="width:30px;height:30px;border-radius:50%;float:left;margin-right:10px;" onerror="this.style.display=\'none\'">';
+                    if (alter && alter.avatarUrl) html += '<img src="' + alter.avatarUrl + '" style="width:30px;height:30px;border-radius:50%;float:left;margin-right:10px;">';
                     html += '<strong>' + (alter ? alter.name : 'Unknown') + '</strong>';
                     if (sw.mood) html += ' (' + sw.mood + ')';
                     html += '<br><small>' + new Date(sw.timestamp).toLocaleString() + '</small>';
                     if (sw.trigger) html += '<br>Trigger: ' + sw.trigger;
-                    if (sw.notes) html += '<br>' + sw.notes;
                     html += '</div>';
                 }
             }
@@ -482,12 +663,11 @@ function logSwitch() {
         }
         
         function showTasks() {
-            var html = '<h2>Tasks</h2><input type="text" id="taskTitle" placeholder="Task title"><select id="taskPriority"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select><button onclick="addTask()">Add Task</button><hr>';
+            var html = '<h2>Tasks</h2><input type="text" id="taskTitle" placeholder="Task title"><button onclick="addTask()">Add Task</button><hr>';
             if (tasks.length === 0) html += '<p>No tasks yet.</p>';
             else {
                 for (var i = 0; i < tasks.length; i++) {
-                    var task = tasks[i];
-                    html += '<div class="task-card card"><input type="checkbox" ' + (task.completed ? 'checked' : '') + ' onchange="toggleTask(\'' + task.id + '\')" style="width:auto;display:inline;"> <strong>' + task.title + '</strong> <small>(' + task.priority + ')</small><button class="delete" onclick="deleteTask(\'' + task.id + '\')">Delete</button></div>';
+                    html += '<div class="task-card card"><input type="checkbox" ' + (tasks[i].completed ? 'checked' : '') + ' onchange="toggleTask(\'' + tasks[i].id + '\')" style="width:auto;display:inline;"> <strong>' + tasks[i].title + '</strong><button class="delete" onclick="deleteTask(\'' + tasks[i].id + '\')">Delete</button></div>';
                 }
             }
             document.getElementById('contentArea').innerHTML = html;
@@ -496,7 +676,7 @@ function logSwitch() {
         function addTask() {
             var title = document.getElementById('taskTitle').value;
             if (!title) { alert('Enter a task'); return; }
-            tasks.push({ id: Date.now().toString(), title: title, priority: document.getElementById('taskPriority').value, completed: false });
+            tasks.push({ id: Date.now().toString(), title: title, completed: false });
             saveData(); showTasks();
         }
         
@@ -515,14 +695,12 @@ function logSwitch() {
         }
         
         function showTriggers() {
-            var html = '<h2>Trigger Tracking</h2><input type="text" id="triggerName" placeholder="Trigger"><input type="text" id="triggerResponse" placeholder="Response"><select id="triggerIntensity"><option value="1">Mild</option><option value="3">Moderate</option><option value="5">Severe</option></select><button onclick="addTrigger()">Log Trigger</button><hr>';
+            var html = '<h2>Trigger Tracking</h2><input type="text" id="triggerName" placeholder="Trigger"><button onclick="addTrigger()">Log Trigger</button><hr>';
             if (triggers.length === 0) html += '<p>No triggers logged.</p>';
             else {
                 var recent = triggers.slice(-30).reverse();
                 for (var i = 0; i < recent.length; i++) {
-                    html += '<div class="trigger-card card"><strong>' + recent[i].trigger + '</strong>';
-                    if (recent[i].response) html += '<br>Response: ' + recent[i].response;
-                    html += '<br><small>Intensity: ' + recent[i].intensity + '/5</small></div>';
+                    html += '<div class="trigger-card card"><strong>' + recent[i].trigger + '</strong><br><small>' + new Date(recent[i].timestamp).toLocaleString() + '</small></div>';
                 }
             }
             document.getElementById('contentArea').innerHTML = html;
@@ -531,7 +709,7 @@ function logSwitch() {
         function addTrigger() {
             var name = document.getElementById('triggerName').value;
             if (!name) { alert('Enter a trigger'); return; }
-            triggers.push({ id: Date.now().toString(), trigger: name, response: document.getElementById('triggerResponse').value, intensity: document.getElementById('triggerIntensity').value, timestamp: new Date().toISOString() });
+            triggers.push({ id: Date.now().toString(), trigger: name, timestamp: new Date().toISOString() });
             saveData(); showTriggers();
         }
         
@@ -541,9 +719,7 @@ function logSwitch() {
             else {
                 var recent = checkIns.slice(-10).reverse();
                 for (var i = 0; i < recent.length; i++) {
-                    html += '<div class="checkin-card card"><strong>' + recent[i].mood + '</strong>';
-                    if (recent[i].notes) html += '<br>' + recent[i].notes;
-                    html += '</div>';
+                    html += '<div class="checkin-card card"><strong>' + recent[i].mood + '</strong></div>';
                 }
             }
             document.getElementById('contentArea').innerHTML = html;
@@ -583,16 +759,13 @@ function logSwitch() {
                 for (var j = 0; j < alters.length; j++) html += '<option value="' + alters[j].id + '">' + alters[j].name + '</option>';
                 html += '</select><select id="relType"><option value="positive">Positive</option><option value="neutral">Neutral</option><option value="strained">Strained</option></select>';
                 html += '<button onclick="addRelationship()">Add Relationship</button><hr>';
-                if (relationships.length === 0) html += '<p>No relationships yet.</p>';
-                else {
-                    for (var r = 0; r < relationships.length; r++) {
-                        var a1 = null, a2 = null;
-                        for (var a = 0; a < alters.length; a++) {
-                            if (alters[a].id === relationships[r].alter1) a1 = alters[a];
-                            if (alters[a].id === relationships[r].alter2) a2 = alters[a];
-                        }
-                        html += '<div class="relationship-card card"><strong>' + (a1 ? a1.name : '?') + ' ↔ ' + (a2 ? a2.name : '?') + '</strong><br>Type: ' + relationships[r].type + '</div>';
+                for (var r = 0; r < relationships.length; r++) {
+                    var a1 = null, a2 = null;
+                    for (var a = 0; a < alters.length; a++) {
+                        if (alters[a].id === relationships[r].alter1) a1 = alters[a];
+                        if (alters[a].id === relationships[r].alter2) a2 = alters[a];
                     }
+                    html += '<div class="relationship-card card"><strong>' + (a1 ? a1.name : '?') + ' ↔ ' + (a2 ? a2.name : '?') + '</strong> - ' + relationships[r].type + '</div>';
                 }
             }
             document.getElementById('contentArea').innerHTML = html;
@@ -612,15 +785,15 @@ function logSwitch() {
             else {
                 var recent = coConsciousness.slice(-30).reverse();
                 for (var i = 0; i < recent.length; i++) {
-                    html += '<div class="coconscious-card card"><strong>Co-Conscious Alters:</strong><br>';
+                    html += '<div class="coconscious-card card">';
                     for (var j = 0; j < recent[i].alterIds.length; j++) {
                         var alter = null;
                         for (var a = 0; a < alters.length; a++) {
                             if (alters[a].id === recent[i].alterIds[j]) { alter = alters[a]; break; }
                         }
-                        html += (alter ? alter.name : 'Unknown') + '<br>';
+                        html += (alter ? alter.name : 'Unknown') + ' ';
                     }
-                    html += '<small>' + new Date(recent[i].timestamp).toLocaleString() + '</small></div>';
+                    html += '</div>';
                 }
             }
             document.getElementById('contentArea').innerHTML = html;
@@ -641,6 +814,27 @@ function logSwitch() {
                     var pct = (counts[alterId] / switches.length) * 100;
                     html += '<div style="margin:10px 0;"><div>' + (alter ? alter.name : 'Unknown') + ': ' + counts[alterId] + ' (' + pct.toFixed(1) + '%)</div><div style="background:#e0e0e0;border-radius:5px;margin-top:5px;"><div class="chart-bar" style="width:' + pct + '%;"></div></div></div>';
                 }
+                
+                // Front time calculation
+                html += '<h3>Front Time (Last 7 days)</h3>';
+                var weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+                var recentSwitches = switches.filter(function(s) { return new Date(s.timestamp) >= weekAgo; });
+                if (recentSwitches.length > 1) {
+                    var frontTime = {};
+                    for (var i = 0; i < recentSwitches.length - 1; i++) {
+                        var duration = new Date(recentSwitches[i + 1].timestamp) - new Date(recentSwitches[i].timestamp);
+                        if (!frontTime[recentSwitches[i].alterId]) frontTime[recentSwitches[i].alterId] = 0;
+                        frontTime[recentSwitches[i].alterId] += duration;
+                    }
+                    for (var alterId2 in frontTime) {
+                        var alter2 = null;
+                        for (var k = 0; k < alters.length; k++) {
+                            if (alters[k].id === alterId2) { alter2 = alters[k]; break; }
+                        }
+                        var hours = (frontTime[alterId2] / (1000 * 60 * 60)).toFixed(1);
+                        html += '<p>' + (alter2 ? alter2.name : 'Unknown') + ': ' + hours + ' hours</p>';
+                    }
+                }
             }
             document.getElementById('contentArea').innerHTML = html;
         }
@@ -648,6 +842,8 @@ function logSwitch() {
         function showSettings() {
             var html = '<h2>Settings</h2>';
             html += '<button onclick="toggleDark()">Toggle Dark Mode</button>';
+            html += '<button onclick="changeTheme()">Change Theme</button>';
+            html += '<button onclick="lockApp()">Set/Change PIN</button>';
             html += '<button onclick="exportData()">Export Data</button>';
             html += '<button class="warning" onclick="document.getElementById(\'importFile\').click()">Import Data</button>';
             html += '<hr><h3>Resources</h3>';
@@ -655,13 +851,6 @@ function logSwitch() {
             html += '<div class="card"><h3>Suicide Prevention</h3><p>1-800-273-8255</p></div>';
             html += '<hr><button class="delete" onclick="clearAllData()">Clear All Data</button>';
             document.getElementById('contentArea').innerHTML = html;
-        }
-        
-        function toggleDark() {
-            document.body.classList.toggle('dark');
-            var isDark = document.body.classList.contains('dark');
-            localStorage.setItem('darkMode', isDark);
-            document.getElementById('darkBtn').textContent = isDark ? '☀️' : '🌙';
         }
         
         function exportData() {
@@ -720,6 +909,19 @@ function logSwitch() {
             }
         }
         
+        function filterAlters() {
+            var search = document.getElementById('searchInput').value.toLowerCase();
+            var html = '<h2>System Members</h2><input type="text" id="searchInput" placeholder="Search..." value="' + search + '" oninput="filterAlters()">';
+            for (var i = 0; i < alters.length; i++) {
+                if (alters[i].name.toLowerCase().indexOf(search) !== -1) {
+                    html += '<div class="card"><h3>' + alters[i].name + '</h3>';
+                    html += '<button class="success" onclick="setActive(\'' + alters[i].id + '\')">Set Active</button>';
+                    html += '<button class="delete" onclick="deleteAlter(\'' + alters[i].id + '\')">Delete</button></div>';
+                }
+            }
+            document.getElementById('contentArea').innerHTML = html;
+        }
+        
         loadData();
         updateStats();
         updateQuickSwitch();
@@ -728,6 +930,11 @@ function logSwitch() {
         if (localStorage.getItem('darkMode') === 'true') {
             document.body.classList.add('dark');
             document.getElementById('darkBtn').textContent = '☀️';
+        }
+        
+        if (localStorage.getItem('theme')) {
+            currentTheme = parseInt(localStorage.getItem('theme'));
+            document.body.className = themes[currentTheme];
         }
         
         window.showPage = showPage;
@@ -747,12 +954,23 @@ function logSwitch() {
         window.addRelationship = addRelationship;
         window.handleFileUpload = handleFileUpload;
         window.importFromPaste = importFromPaste;
-        window.importFromManual = importFromManual;
         window.exportData = exportData;
         window.importData = importData;
         window.clearAllData = clearAllData;
         window.toggleDark = toggleDark;
+        window.changeTheme = changeTheme;
+        window.lockApp = lockApp;
+        window.enterPin = enterPin;
+        window.clearPin = clearPin;
+        window.deletePin = deletePin;
         window.filterAlters = filterAlters;
+        window.showCalendar = showCalendar;
+        window.showDaySwitches = showDaySwitches;
+        window.showGallery = showGallery;
+        window.addGalleryImage = addGalleryImage;
+        window.viewImage = viewImage;
     </script>
 </body>
 </html>
+    </script>
+        
