@@ -149,7 +149,7 @@
     <input type="file" id="galleryFile" accept="image/*" style="display:none" onchange="addGalleryImage(this.files[0])">
 
     <script>
-        var alters = [];
+var alters = [];
 var switches = [];
 var messages = [];
 var tasks = [];
@@ -329,8 +329,8 @@ function updatePinDots() {
             dot.classList.toggle('filled', i <= pinEntry.length);
         }
     }
-    }
-        function showAlters() {
+}
+function showAlters() {
     var html = '<h2>System Members</h2><input type="text" id="searchInput" placeholder="Search..." oninput="filterAlters()">';
     if (alters.length === 0) {
         html += '<p>No alters yet. Tap Add to create one.</p>';
@@ -619,8 +619,8 @@ function logSwitch() {
     saveData(); updateStats(); updateQuickSwitch();
     alert('Switch logged!');
     showHistory();
-        }
-                function showHistory() {
+}
+        function showHistory() {
             var html = '<h2>Switch History</h2>';
             if (switches.length === 0) { html += '<p>No switches yet.</p>'; }
             else {
@@ -972,5 +972,3 @@ function logSwitch() {
     </script>
 </body>
 </html>
-    </script>
-        
